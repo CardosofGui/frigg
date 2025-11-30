@@ -1,15 +1,13 @@
 package com.br.lame.utils
 
-import com.br.lame.utils.native.convert_wav_to_mp3
+import com.br.lame.utils.native.*
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.toCString
 import platform.Foundation.NSFileManager
-import platform.Foundation.NSFileManagerDefaultManager
 
 @OptIn(ExperimentalForeignApi::class)
 actual object LameConverter {
     actual fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
-        val fileManager = NSFileManagerDefaultManager
+        val fileManager = NSFileManager.defaultManager
         
         if (!fileManager.fileExistsAtPath(wavPath)) {
             return ConversionResult.Error("Arquivo WAV não encontrado: $wavPath")
@@ -33,10 +31,7 @@ actual object LameConverter {
         }
         
         return try {
-            val wavCString = wavPath.toCString()
-            val mp3CString = mp3Path.toCString()
-            
-            val result = convert_wav_to_mp3(wavCString, mp3CString, bitrate)
+            val result = convert_wav_to_mp3(wavPath, mp3Path, bitrate)
             
             if (result != 0) {
                 if (fileManager.fileExistsAtPath(mp3Path)) {

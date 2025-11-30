@@ -5,6 +5,6 @@ import platform.UIKit.UIViewController
 
 fun MainViewController(): UIViewController {
     val controller = ComposeUIViewController { App() }
-    FilePicker.setViewController(controller)
+    setViewController(controller)
     return controller
 }

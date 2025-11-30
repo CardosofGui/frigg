@@ -19,29 +19,35 @@ kotlin {
 
     val xcfName = "lame-utilsKit"
 
-    // Função para evitar repetição no iOS
-    fun org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.configureLameInterop() {
-        binaries.framework {
+    val iosX64 = iosX64()
+    val iosArm64 = iosArm64()
+    val iosSimulatorArm64 = iosSimulatorArm64()
+
+    listOf(iosX64, iosArm64, iosSimulatorArm64).forEach { target ->
+        target.binaries.framework {
             baseName = xcfName
-        }
-        compilations.getByName("main") {
-            cinterops {
-                val lame by creating {
-                    defFile(project.file("src/iosMain/cinterop/lame.def"))
-                    packageName("com.br.lame.utils.native")
-                    compilerOpts(
-                        "-I${projectDir}/src/native/wrapper",
-                        "-I${projectDir}/src/native/lame/libmp3lame",
-                        "-I${projectDir}/src/native/lame/include"
-                    )
-                }
-            }
+            isStatic = true
         }
     }
 
-    iosX64 { configureLameInterop() }
-    iosArm64 { configureLameInterop() }
-    iosSimulatorArm64 { configureLameInterop() }
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>().configureEach {
+        compilations.getByName("main") {
+            cinterops.create("lame") {
+                defFile = file("src/iosMain/cinterop/lame.def")
+                packageName = "com.br.lame.utils.native"
+                includeDirs {
+                    allHeaders("src/native/wrapper")
+                    allHeaders("src/native/lame/libmp3lame")
+                    allHeaders("src/native/lame/include")
+                }
+                compilerOpts(
+                    "-I${projectDir}/src/native/wrapper",
+                    "-I${projectDir}/src/native/lame/libmp3lame",
+                    "-I${projectDir}/src/native/lame/include"
+                )
+            }
+        }
+    }
 
     sourceSets {
         commonMain {

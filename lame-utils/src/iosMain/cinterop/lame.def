@@ -1,7 +1,17 @@
 language = C
-headers = ../../native/wrapper/wav_to_mp3.h
+headers = wav_to_mp3.h
 headerFilter = wav_to_mp3.h
 package = com.br.lame.utils.native
 
-compilerOpts = -I../../native/wrapper -I../../native/lame/libmp3lame -I../../native/lame/include
+compilerOpts = -Isrc/native/wrapper -Isrc/native/lame/libmp3lame -Isrc/native/lame/include
+
+libraryPaths = src/native/lib
+
+staticLibraries.ios_arm64 = liblame_utils_ios_arm64.a
+staticLibraries.ios_x64 = liblame_utils_ios_simulator.a
+staticLibraries.ios_simulator_arm64 = liblame_utils_ios_simulator.a
+
+linkerOpts.ios_arm64 = -lc++ -framework Foundation
+linkerOpts.ios_x64 = -lc++ -framework Foundation
+linkerOpts.ios_simulator_arm64 = -lc++ -framework Foundation
 
