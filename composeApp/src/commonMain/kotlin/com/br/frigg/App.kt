@@ -39,11 +39,14 @@ fun App() {
                         val wavPath = pickWavFile()
                         
                         if (wavPath != null) {
-                            val success = LameConverter.convertWavToMp3(wavPath, bitrate = 128)
-                            conversionResult = if (success) {
-                                "Conversão concluída com sucesso!"
-                            } else {
-                                "Erro ao converter o arquivo."
+                            val result = LameConverter.convertWavToMp3(wavPath, bitrate = 128)
+                            conversionResult = when (result) {
+                                is com.br.lame.utils.ConversionResult.Success -> {
+                                    "Conversão concluída com sucesso!\nArquivo salvo em: ${result.mp3Path}"
+                                }
+                                is com.br.lame.utils.ConversionResult.Error -> {
+                                    "Erro ao converter o arquivo:\n${result.message}"
+                                }
                             }
                         } else {
                             conversionResult = "Nenhum arquivo selecionado."

@@ -1,39 +1,26 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidKotlinMultiplatformLibrary)
-    alias(libs.plugins.androidLint)
+    alias(libs.plugins.androidLibrary)
 }
 
 kotlin {
 
-    // Target declarations - add or remove as needed below. These define
-    // which platforms this KMP module supports.
-    // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
-    androidLibrary {
-        namespace = "com.br.lame.utils"
-        compileSdk = 36
-        minSdk = 24
-
-        withHostTestBuilder {
-        }
-
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }.configure {
-            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    androidTarget {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_1_8)
+                }
+            }
         }
     }
 
-    // For iOS targets, this is also where you should
-    // configure native binary output. For more information, see:
-    // https://kotlinlang.org/docs/multiplatform-build-native-binaries.html#build-xcframeworks
-
-    // A step-by-step guide on how to include this library in an XCode
-    // project can be found here:
-    // https://developer.android.com/kotlin/multiplatform/migrate
     val xcfName = "lame-utilsKit"
 
-    iosX64 {
+    // Função para evitar repetição no iOS
+    fun org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.configureLameInterop() {
         binaries.framework {
             baseName = xcfName
         }
@@ -52,54 +39,14 @@ kotlin {
         }
     }
 
-    iosArm64 {
-        binaries.framework {
-            baseName = xcfName
-        }
-        compilations.getByName("main") {
-            cinterops {
-                val lame by creating {
-                    defFile(project.file("src/iosMain/cinterop/lame.def"))
-                    packageName("com.br.lame.utils.native")
-                    compilerOpts(
-                        "-I${projectDir}/src/native/wrapper",
-                        "-I${projectDir}/src/native/lame/libmp3lame",
-                        "-I${projectDir}/src/native/lame/include"
-                    )
-                }
-            }
-        }
-    }
+    iosX64 { configureLameInterop() }
+    iosArm64 { configureLameInterop() }
+    iosSimulatorArm64 { configureLameInterop() }
 
-    iosSimulatorArm64 {
-        binaries.framework {
-            baseName = xcfName
-        }
-        compilations.getByName("main") {
-            cinterops {
-                val lame by creating {
-                    defFile(project.file("src/iosMain/cinterop/lame.def"))
-                    packageName("com.br.lame.utils.native")
-                    compilerOpts(
-                        "-I${projectDir}/src/native/wrapper",
-                        "-I${projectDir}/src/native/lame/libmp3lame",
-                        "-I${projectDir}/src/native/lame/include"
-                    )
-                }
-            }
-        }
-    }
-
-    // Source set declarations.
-    // Declaring a target automatically creates a source set with the same name. By default, the
-    // Kotlin Gradle Plugin creates additional source sets that depend on each other, since it is
-    // common to share sources between related targets.
-    // See: https://kotlinlang.org/docs/multiplatform-hierarchy.html
     sourceSets {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
-                // Add KMP dependencies here
             }
         }
 
@@ -112,26 +59,103 @@ kotlin {
         androidMain {
             dependencies {
                 implementation("com.getkeepsafe.relinker:relinker:1.4.5")
-            }
-        }
-
-        getByName("androidDeviceTest") {
-            dependencies {
-                implementation(libs.androidx.runner)
-                implementation(libs.androidx.core)
-                implementation(libs.androidx.testExt.junit)
+                implementation(libs.kotlin.logging)
+                implementation(libs.slf4j.android)
             }
         }
 
         iosMain {
-            dependencies {
-                // Add iOS-specific dependencies here. This a source set created by Kotlin Gradle
-                // Plugin (KGP) that each specific iOS target (e.g., iosX64) depends on as
-                // part of KMP’s default source set hierarchy. Note that this source set depends
-                // on common by default and will correctly pull the iOS artifacts of any
-                // KMP dependencies declared in commonMain.
+            dependencies { }
+        }
+    }
+}
+
+// ---------------------------------------------------------
+// ANDROID — CONFIGURAÇÕES DE NDK, CMAKE, ABI ETC
+// ESSA PARTE NÃO PODE FICAR DENTRO DO BLOCO "kotlin"
+// ---------------------------------------------------------
+
+android {
+    namespace = "com.br.lame.utils"
+    compileSdk = 36
+    ndkVersion = "26.1.10909125"
+
+    defaultConfig {
+        minSdk = 24
+
+        externalNativeBuild {
+            cmake {
+                arguments(
+                    "-DANDROID_ARM_NEON=ON",
+                    "-D__ARM_NEON__=1",
+                    "-DANDROID_TOOLCHAIN=clang",
+                    "-DANDROID_ARM_MODE=arm",
+                    "-DCMAKE_ANDROID_ARM_NEON=TRUE",
+                    "-DANDROID_STL=c++_shared"
+                )
+
+                cppFlags(
+                    "-O3",
+                    "-ffast-math",
+                    "-ftree-vectorize",
+                    "-funroll-loops",
+                    "-fomit-frame-pointer",
+                    "-finline-functions",
+                    "-DNDEBUG=1"
+                )
+
+                cFlags(
+                    "-O3",
+                    "-ffast-math",
+                    "-ftree-vectorize"
+                )
+
+                abiFilters("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
             }
         }
     }
 
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            externalNativeBuild {
+                cmake {
+                    arguments(
+                        "-DCMAKE_BUILD_TYPE=Release",
+                        "-DCMAKE_C_FLAGS_RELEASE=-O3 -flto -ffast-math",
+                        "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -flto -ffast-math"
+                    )
+
+                    abiFilters("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+                }
+            }
+        }
+        debug {
+            externalNativeBuild {
+                cmake {
+                    arguments(
+                        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -g -ffast-math",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g -ffast-math"
+                    )
+                    cppFlags(
+                        "-g",
+                        "-DDEBUG_BUILD=1"
+                    )
+                }
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/native/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 }

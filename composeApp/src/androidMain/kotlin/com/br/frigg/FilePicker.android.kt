@@ -28,7 +28,7 @@ actual suspend fun pickWavFile(): String? = suspendCancellableCoroutine { contin
     val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
         type = "audio/*"
         addCategory(Intent.CATEGORY_OPENABLE)
-        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/wav", "audio/x-wav", "audio/*"))
+        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/wav", "audio/x-wav", "audio/wave"))
     }
     
     resultCallback = { uri ->
@@ -76,9 +76,38 @@ private fun copyUriToTempFile(activity: Activity, uri: Uri): File? {
         }
         inputStream.close()
         
+        if (!isValidWavFile(tempFile)) {
+            tempFile.delete()
+            return null
+        }
+        
         tempFile
     } catch (e: Exception) {
         e.printStackTrace()
         null
+    }
+}
+
+private fun isValidWavFile(file: File): Boolean {
+    if (!file.exists() || file.length() < 44) {
+        return false
+    }
+    
+    return try {
+        val inputStream = file.inputStream()
+        val buffer = ByteArray(12)
+        val bytesRead = inputStream.read(buffer)
+        inputStream.close()
+        
+        if (bytesRead < 12) {
+            return false
+        }
+        
+        val chunkId = String(buffer, 0, 4)
+        val format = String(buffer, 8, 4)
+        
+        chunkId == "RIFF" && format == "WAVE"
+    } catch (e: Exception) {
+        false
     }
 }

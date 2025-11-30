@@ -1,112 +1,287 @@
 package com.br.lame.utils
 
 import android.content.Context
-import android.os.Build
 import com.getkeepsafe.relinker.ReLinker
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
+import java.io.IOException
+
+private val logger = KotlinLogging.logger("LameConverter")
 
 actual object LameConverter {
     private var isLibraryLoaded = false
     private var appContext: Context? = null
     
     fun initialize(context: Context) {
+        logger.info { "Inicializando LameConverter" }
         appContext = context.applicationContext
         if (!isLibraryLoaded) {
             try {
-                extractAndLoadLibraries()
+                logger.debug { "Carregando bibliotecas nativas" }
+                loadLibraries(context)
                 isLibraryLoaded = true
+                logger.info { "Bibliotecas nativas carregadas com sucesso" }
             } catch (e: Exception) {
+                logger.error(e) { "Erro ao carregar bibliotecas nativas" }
                 e.printStackTrace()
             }
+        } else {
+            logger.debug { "Bibliotecas já estão carregadas" }
         }
     }
 
     @JvmStatic
     external fun convertWavToMp3(wavPath: String, mp3Path: String, bitrate: Int): Boolean
 
-    actual fun convertWavToMp3(wavPath: String, bitrate: Int): Boolean {
+    actual fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
+        logger.info { "Iniciando conversão WAV para MP3: $wavPath com bitrate $bitrate" }
+        
         if (!isLibraryLoaded && appContext != null) {
             try {
-                extractAndLoadLibraries()
+                logger.debug { "Carregando bibliotecas nativas antes da conversão" }
+                loadLibraries(appContext!!)
                 isLibraryLoaded = true
             } catch (e: Exception) {
-                e.printStackTrace()
-                return false
+                val errorMsg = "Erro ao carregar bibliotecas nativas: ${e.message}"
+                logger.error(e) { errorMsg }
+                return ConversionResult.Error(errorMsg, e)
             }
+        }
+        
+        if (!isLibraryLoaded) {
+            val errorMsg = "Bibliotecas nativas não foram inicializadas. Chame initialize() primeiro."
+            logger.error { errorMsg }
+            return ConversionResult.Error(errorMsg)
         }
         
         val wavFile = File(wavPath)
         if (!wavFile.exists()) {
-            return false
+            val errorMsg = "Arquivo WAV não encontrado: $wavPath"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
+        }
+        
+        val wavFileSize = wavFile.length()
+        logger.debug { "Tamanho do arquivo WAV: $wavFileSize bytes" }
+        
+        if (wavFileSize == 0L) {
+            val errorMsg = "Arquivo WAV está vazio: $wavPath"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
+        }
+        
+        if (wavFileSize < 44) {
+            val errorMsg = "Arquivo WAV muito pequeno (${wavFileSize} bytes). Um arquivo WAV válido precisa ter pelo menos 44 bytes para o header: $wavPath"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
+        }
+        
+        if (!wavFile.canRead()) {
+            val errorMsg = "Sem permissão para ler o arquivo WAV: $wavPath"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
         }
 
         val mp3Path = wavPath.replace(".wav", ".mp3", ignoreCase = true)
-        return convertWavToMp3(wavPath, mp3Path, bitrate)
-    }
-    
-    private fun extractAndLoadLibraries() {
-        val context = appContext ?: return
-        val abi = getAbi()
-        val libDir = File(context.applicationInfo.nativeLibraryDir)
+        logger.debug { "Caminho do arquivo MP3 de saída: $mp3Path" }
         
-        if (!libDir.exists()) {
-            libDir.mkdirs()
-        }
+        val mp3File = File(mp3Path)
+        val mp3Dir = mp3File.parentFile
         
-        val cppSharedLib = File(libDir, "libc++_shared.so")
-        val wavToMp3Lib = File(libDir, "libwav_to_mp3.so")
-        
-        if (!cppSharedLib.exists()) {
-            extractAsset("lib/$abi/libc++_shared.so", cppSharedLib)
-        }
-        
-        if (!wavToMp3Lib.exists()) {
-            extractAsset("lib/$abi/libwav_to_mp3.so", wavToMp3Lib)
-        }
-        
-        ReLinker.loadLibrary(context, "c++_shared")
-        ReLinker.loadLibrary(context, "wav_to_mp3")
-    }
-    
-    private fun extractAsset(assetPath: String, destination: File) {
-        val context = appContext ?: return
-        
-        try {
-            val inputStream: InputStream = context.assets.open(assetPath)
-            val outputStream = FileOutputStream(destination)
-            
-            inputStream.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
+        if (mp3Dir != null && !mp3Dir.exists()) {
+            try {
+                val created = mp3Dir.mkdirs()
+                logger.debug { "Tentativa de criar diretório ${mp3Dir.absolutePath}: $created" }
+                if (!created && !mp3Dir.exists()) {
+                    val errorMsg = "Não foi possível criar o diretório de saída: ${mp3Dir.absolutePath}"
+                    logger.error { errorMsg }
+                    return ConversionResult.Error(errorMsg)
                 }
+            } catch (e: Exception) {
+                val errorMsg = "Erro ao criar diretório de saída: ${mp3Dir.absolutePath}. Erro: ${e.message}"
+                logger.error(e) { errorMsg }
+                return ConversionResult.Error(errorMsg, e)
             }
+        }
+        
+        if (mp3Dir != null && !mp3Dir.canWrite()) {
+            val errorMsg = "Sem permissão para escrever no diretório: ${mp3Dir.absolutePath}"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
+        }
+        
+        val availableSpace = mp3Dir?.freeSpace ?: 0L
+        logger.debug { "Espaço disponível no diretório: $availableSpace bytes" }
+        
+        if (availableSpace < wavFileSize) {
+            val errorMsg = "Espaço insuficiente no disco. Disponível: $availableSpace bytes, necessário: aproximadamente ${wavFileSize} bytes"
+            logger.warn { errorMsg }
+            return ConversionResult.Error(errorMsg)
+        }
+        
+        val wavValidation = validateWavFile(wavFile)
+        if (wavValidation != null) {
+            logger.warn { wavValidation }
+            return ConversionResult.Error(wavValidation)
+        }
+        
+        logger.debug { "Chamando função nativa convertWavToMp3..." }
+        logger.debug { "Parâmetros: wavPath=$wavPath, mp3Path=$mp3Path, bitrate=$bitrate" }
+        
+        return try {
+            val result = convertWavToMp3(wavPath, mp3Path, bitrate)
+            logger.debug { "Função nativa retornou: $result" }
             
-            destination.setExecutable(true, false)
-            destination.setReadable(true, false)
+            if (result) {
+                if (mp3File.exists()) {
+                    val mp3FileSize = mp3File.length()
+                    logger.debug { "Arquivo MP3 criado com tamanho: $mp3FileSize bytes" }
+                    if (mp3FileSize > 0) {
+                        logger.info { "Conversão concluída com sucesso: $mp3Path (${mp3FileSize} bytes)" }
+                        ConversionResult.Success(mp3Path)
+                    } else {
+                        val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 está vazio: $mp3Path"
+                        logger.error { errorMsg }
+                        ConversionResult.Error(errorMsg)
+                    }
+                } else {
+                    val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 não foi criado: $mp3Path"
+                    logger.error { errorMsg }
+                    ConversionResult.Error(errorMsg)
+                }
+            } else {
+                val errorMsg = buildString {
+                    appendLine("A conversão falhou. Possíveis causas:")
+                    appendLine("1. Arquivo WAV inválido ou corrompido")
+                    appendLine("2. Formato de áudio não suportado (apenas PCM 16-bit é suportado)")
+                    appendLine("3. Erro ao abrir/criar arquivos")
+                    appendLine("4. Erro na inicialização do encoder LAME")
+                    appendLine("5. Erro durante a codificação")
+                    appendLine("Arquivo WAV: $wavPath (${wavFileSize} bytes)")
+                    appendLine("Arquivo MP3 esperado: $mp3Path")
+                }
+                logger.warn { errorMsg }
+                ConversionResult.Error(errorMsg)
+            }
+        } catch (e: UnsatisfiedLinkError) {
+            val errorMsg = "Erro ao carregar biblioteca nativa: ${e.message}"
+            logger.error(e) { errorMsg }
+            ConversionResult.Error(errorMsg, e)
+        } catch (e: IOException) {
+            val errorMsg = "Erro de I/O durante a conversão: ${e.message}"
+            logger.error(e) { errorMsg }
+            ConversionResult.Error(errorMsg, e)
+        } catch (e: SecurityException) {
+            val errorMsg = "Erro de permissão durante a conversão: ${e.message}"
+            logger.error(e) { errorMsg }
+            ConversionResult.Error(errorMsg, e)
         } catch (e: Exception) {
-            throw RuntimeException("Failed to extract native library: $assetPath", e)
+            val errorMsg = "Erro inesperado durante a conversão: ${e.javaClass.simpleName} - ${e.message}"
+            logger.error(e) { errorMsg }
+            ConversionResult.Error(errorMsg, e)
         }
     }
     
-    private fun getAbi(): String {
-        return when {
-            Build.SUPPORTED_64_BIT_ABIS.isNotEmpty() -> {
-                when (Build.SUPPORTED_64_BIT_ABIS[0]) {
-                    "arm64-v8a" -> "arm64-v8a"
-                    "x86_64" -> "x86_64"
-                    else -> "arm64-v8a"
+    private fun loadLibraries(context: Context) {
+        logger.debug { "Carregando biblioteca c++_shared" }
+        ReLinker.loadLibrary(context, "c++_shared")
+        logger.debug { "Carregando biblioteca wav_to_mp3" }
+        ReLinker.loadLibrary(context, "wav_to_mp3")
+        logger.debug { "Todas as bibliotecas foram carregadas" }
+    }
+    
+    private fun validateWavFile(wavFile: File): String? {
+        return try {
+            val inputStream = wavFile.inputStream()
+            val headerBuffer = ByteArray(12)
+            val bytesRead = inputStream.read(headerBuffer)
+            
+            if (bytesRead < 12) {
+                inputStream.close()
+                return "Arquivo WAV muito pequeno ou corrompido. Header incompleto (${bytesRead} bytes lidos, esperado pelo menos 12 bytes)"
+            }
+            
+            val chunkId = String(headerBuffer, 0, 4)
+            if (chunkId != "RIFF") {
+                inputStream.close()
+                val detectedFormat = when {
+                    chunkId.startsWith("ID3") -> "MP3 (detectado header ID3)"
+                    chunkId.startsWith("Ogg") -> "OGG"
+                    chunkId.startsWith("fLaC") -> "FLAC"
+                    chunkId.startsWith("ftyp") -> "MP4/M4A"
+                    else -> "desconhecido (header: '$chunkId')"
+                }
+                return "Arquivo selecionado não é um WAV válido. Formato detectado: $detectedFormat. Por favor, selecione um arquivo WAV (PCM 16-bit)."
+            }
+            
+            val format = String(headerBuffer, 8, 4)
+            if (format != "WAVE") {
+                inputStream.close()
+                return "Arquivo não é um WAV válido. Format esperado: 'WAVE', encontrado: '$format'"
+            }
+            
+            var position = 12
+            var foundFmt = false
+            val chunkBuffer = ByteArray(8)
+            
+            while (position < 1024) {
+                val read = inputStream.read(chunkBuffer)
+                if (read < 8) {
+                    inputStream.close()
+                    return "Arquivo WAV corrompido. Não foi possível encontrar o chunk 'fmt '"
+                }
+                
+                val chunkId = String(chunkBuffer, 0, 4)
+                val chunkSize = (chunkBuffer[4].toInt() and 0xFF) or
+                               ((chunkBuffer[5].toInt() and 0xFF) shl 8) or
+                               ((chunkBuffer[6].toInt() and 0xFF) shl 16) or
+                               ((chunkBuffer[7].toInt() and 0xFF) shl 24)
+                
+                if (chunkId == "fmt ") {
+                    foundFmt = true
+                    val fmtBuffer = ByteArray(16)
+                    val fmtRead = inputStream.read(fmtBuffer)
+                    if (fmtRead < 16) {
+                        inputStream.close()
+                        return "Arquivo WAV corrompido. Chunk 'fmt ' incompleto"
+                    }
+                    
+                    val audioFormat = (fmtBuffer[0].toInt() and 0xFF) or ((fmtBuffer[1].toInt() and 0xFF) shl 8)
+                    if (audioFormat != 1) {
+                        inputStream.close()
+                        return "Formato de áudio não suportado. Apenas PCM (formato 1) é suportado, encontrado: formato $audioFormat"
+                    }
+                    
+                    val numChannels = (fmtBuffer[2].toInt() and 0xFF) or ((fmtBuffer[3].toInt() and 0xFF) shl 8)
+                    val sampleRate = (fmtBuffer[4].toInt() and 0xFF) or 
+                                    ((fmtBuffer[5].toInt() and 0xFF) shl 8) or
+                                    ((fmtBuffer[6].toInt() and 0xFF) shl 16) or
+                                    ((fmtBuffer[7].toInt() and 0xFF) shl 24)
+                    val bitsPerSample = (fmtBuffer[14].toInt() and 0xFF) or ((fmtBuffer[15].toInt() and 0xFF) shl 8)
+                    
+                    if (bitsPerSample != 16) {
+                        inputStream.close()
+                        return "Bits por sample não suportado. Apenas 16-bit é suportado, encontrado: $bitsPerSample-bit"
+                    }
+                    
+                    logger.debug { "WAV válido: $numChannels canais, ${sampleRate}Hz, ${bitsPerSample}-bit" }
+                    inputStream.close()
+                    return null
+                } else {
+                    inputStream.skip(chunkSize.toLong())
+                    position += 8 + chunkSize
                 }
             }
-            Build.SUPPORTED_32_BIT_ABIS.isNotEmpty() -> {
-                when (Build.SUPPORTED_32_BIT_ABIS[0]) {
-                    "armeabi-v7a" -> "armeabi-v7a"
-                    "x86" -> "x86"
-                    else -> "armeabi-v7a"
-                }
+            
+            inputStream.close()
+            if (!foundFmt) {
+                return "Arquivo WAV inválido. Chunk 'fmt ' não encontrado"
             }
-            else -> "arm64-v8a"
+            
+            null
+        } catch (e: Exception) {
+            logger.error(e) { "Erro ao validar arquivo WAV" }
+            "Erro ao ler header do arquivo WAV: ${e.message}"
         }
     }
 }
