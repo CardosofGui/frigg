@@ -1,4 +1,4 @@
-rootProject.name = "Frigg"
+rootProject.name = "FriggApp"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -29,4 +29,4 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
-include(":lame-utils")
+include(":frigg")
