@@ -1,0 +1,7 @@
+language = C
+headers = ../../native/wrapper/wav_to_mp3.h
+headerFilter = wav_to_mp3.h
+package = com.br.lame.utils.native
+
+compilerOpts = -I../../native/wrapper -I../../native/lame/libmp3lame -I../../native/lame/include
+
