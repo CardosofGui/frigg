@@ -62,25 +62,28 @@ actual object LameConverter {
         }
         
         val wavFileSize = wavFile.length()
-        logger.debug { "Tamanho do arquivo WAV: $wavFileSize bytes" }
+        logger.info { "Arquivo WAV encontrado: $wavPath" }
+        logger.info { "Tamanho do arquivo WAV: $wavFileSize bytes (${wavFileSize / 1024} KB)" }
         
         if (wavFileSize == 0L) {
             val errorMsg = "Arquivo WAV está vazio: $wavPath"
-            logger.warn { errorMsg }
+            logger.error { errorMsg }
             return ConversionResult.Error(errorMsg)
         }
         
         if (wavFileSize < 44) {
             val errorMsg = "Arquivo WAV muito pequeno (${wavFileSize} bytes). Um arquivo WAV válido precisa ter pelo menos 44 bytes para o header: $wavPath"
-            logger.warn { errorMsg }
+            logger.error { errorMsg }
             return ConversionResult.Error(errorMsg)
         }
         
         if (!wavFile.canRead()) {
             val errorMsg = "Sem permissão para ler o arquivo WAV: $wavPath"
-            logger.warn { errorMsg }
+            logger.error { errorMsg }
             return ConversionResult.Error(errorMsg)
         }
+        
+        logger.debug { "Permissões do arquivo WAV: readable=true, absolutePath=${wavFile.absolutePath}" }
 
         val mp3Path = wavPath.replace(".wav", ".mp3", ignoreCase = true)
         logger.debug { "Caminho do arquivo MP3 de saída: $mp3Path" }
@@ -119,25 +122,32 @@ actual object LameConverter {
             return ConversionResult.Error(errorMsg)
         }
         
+        logger.info { "Iniciando validação do arquivo WAV..." }
         val wavValidation = validateWavFile(wavFile)
         if (wavValidation != null) {
-            logger.warn { wavValidation }
+            logger.error { "Validação WAV falhou: $wavValidation" }
             return ConversionResult.Error(wavValidation)
         }
+        logger.info { "Validação WAV concluída com sucesso" }
         
-        logger.debug { "Chamando função nativa convertWavToMp3..." }
-        logger.debug { "Parâmetros: wavPath=$wavPath, mp3Path=$mp3Path, bitrate=$bitrate" }
+        logger.info { "Chamando função nativa convertWavToMp3..." }
+        logger.info { "Parâmetros: wavPath=$wavPath, mp3Path=$mp3Path, bitrate=$bitrate" }
         
         return try {
+            logger.info { "Executando conversão nativa..." }
+            val startTime = System.currentTimeMillis()
             val result = convertWavToMp3(wavPath, mp3Path, bitrate)
-            logger.debug { "Função nativa retornou: $result" }
+            val duration = System.currentTimeMillis() - startTime
+            logger.info { "Função nativa retornou: $result (tempo: ${duration}ms)" }
             
             if (result) {
                 if (mp3File.exists()) {
                     val mp3FileSize = mp3File.length()
-                    logger.debug { "Arquivo MP3 criado com tamanho: $mp3FileSize bytes" }
+                    logger.info { "Arquivo MP3 criado: $mp3Path" }
+                    logger.info { "Tamanho do arquivo MP3: $mp3FileSize bytes (${mp3FileSize / 1024} KB)" }
                     if (mp3FileSize > 0) {
-                        logger.info { "Conversão concluída com sucesso: $mp3Path (${mp3FileSize} bytes)" }
+                        val compressionRatio = (wavFileSize.toDouble() / mp3FileSize.toDouble() * 100).toInt()
+                        logger.info { "Conversão concluída com sucesso: $mp3Path (${mp3FileSize} bytes, ${compressionRatio}% do tamanho original)" }
                         ConversionResult.Success(mp3Path)
                     } else {
                         val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 está vazio: $mp3Path"
@@ -147,11 +157,13 @@ actual object LameConverter {
                 } else {
                     val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 não foi criado: $mp3Path"
                     logger.error { errorMsg }
+                    logger.error { "Diretório existe: ${mp3File.parentFile?.exists()}, pode escrever: ${mp3File.parentFile?.canWrite()}" }
                     ConversionResult.Error(errorMsg)
                 }
             } else {
                 val errorMsg = buildString {
-                    appendLine("A conversão falhou. Possíveis causas:")
+                    appendLine("A conversão falhou. Verifique os logs nativos (LameConverterNative) para detalhes.")
+                    appendLine("Possíveis causas:")
                     appendLine("1. Arquivo WAV inválido ou corrompido")
                     appendLine("2. Formato de áudio não suportado (apenas PCM 16-bit é suportado)")
                     appendLine("3. Erro ao abrir/criar arquivos")
@@ -159,8 +171,9 @@ actual object LameConverter {
                     appendLine("5. Erro durante a codificação")
                     appendLine("Arquivo WAV: $wavPath (${wavFileSize} bytes)")
                     appendLine("Arquivo MP3 esperado: $mp3Path")
+                    appendLine("Tempo de execução: ${duration}ms")
                 }
-                logger.warn { errorMsg }
+                logger.error { errorMsg }
                 ConversionResult.Error(errorMsg)
             }
         } catch (e: UnsatisfiedLinkError) {
@@ -259,12 +272,16 @@ actual object LameConverter {
                                     ((fmtBuffer[7].toInt() and 0xFF) shl 24)
                     val bitsPerSample = (fmtBuffer[14].toInt() and 0xFF) or ((fmtBuffer[15].toInt() and 0xFF) shl 8)
                     
+                    logger.info { "Detalhes do WAV: $numChannels canal(is), ${sampleRate}Hz, ${bitsPerSample}-bit, formato PCM" }
+                    
                     if (bitsPerSample != 16) {
                         inputStream.close()
-                        return "Bits por sample não suportado. Apenas 16-bit é suportado, encontrado: $bitsPerSample-bit"
+                        val errorMsg = "Bits por sample não suportado. Apenas 16-bit é suportado, encontrado: $bitsPerSample-bit"
+                        logger.error { errorMsg }
+                        return errorMsg
                     }
                     
-                    logger.debug { "WAV válido: $numChannels canais, ${sampleRate}Hz, ${bitsPerSample}-bit" }
+                    logger.info { "WAV válido e compatível: $numChannels canais, ${sampleRate}Hz, ${bitsPerSample}-bit PCM" }
                     inputStream.close()
                     return null
                 } else {
