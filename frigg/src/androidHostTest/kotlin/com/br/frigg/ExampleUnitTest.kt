@@ -1,4 +1,4 @@
-package com.br.lame.utils
+package com.br.frigg
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

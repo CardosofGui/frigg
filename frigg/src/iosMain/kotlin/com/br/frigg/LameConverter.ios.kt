@@ -1,6 +1,6 @@
-package com.br.lame.utils
+package com.br.frigg
 
-import com.br.lame.utils.native.*
+import com.br.frigg.native.*
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSFileManager
 
@@ -53,4 +53,3 @@ actual object LameConverter {
         }
     }
 }
-

@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         val allGranted = permissions.all { it.value }
         if (allGranted) {
             initializeFilePicker(this)
-            com.br.lame.utils.LameConverter.initialize(this)
+            com.br.frigg.LameConverter.initialize(this)
         }
     }
     
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         
         if (hasStoragePermissions()) {
             initializeFilePicker(this)
-            com.br.lame.utils.LameConverter.initialize(this)
+            com.br.frigg.LameConverter.initialize(this)
         } else {
             requestStoragePermissions()
         }

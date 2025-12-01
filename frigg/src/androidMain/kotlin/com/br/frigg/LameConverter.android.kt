@@ -1,4 +1,4 @@
-package com.br.lame.utils
+package com.br.frigg
 
 import android.content.Context
 import com.getkeepsafe.relinker.ReLinker

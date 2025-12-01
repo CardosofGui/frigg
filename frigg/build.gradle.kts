@@ -38,7 +38,7 @@ kotlin {
         compilations.getByName("main") {
             cinterops.create("lame") {
                 defFile(project.file("src/iosMain/cinterop/lame.def"))
-                packageName = "com.br.lame.utils.native"
+                packageName = "com.br.frigg.native"
                 includeDirs {
                     allHeaders("src/native/wrapper")
                     allHeaders("src/native/lame/libmp3lame")
@@ -84,7 +84,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.br.lame.utils"
+    namespace = "com.br.frigg"
     compileSdk = 36
     ndkVersion = "26.1.10909125"
 

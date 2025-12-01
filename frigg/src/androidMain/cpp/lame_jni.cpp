@@ -10,7 +10,7 @@
 #define LOG_DEBUG(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_br_lame_utils_LameConverter_convertWavToMp3(
+Java_com_br_frigg_LameConverter_convertWavToMp3(
     JNIEnv *env,
     jobject thiz,
     jstring wavPath,

@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.br.lame.utils.LameConverter
+import com.br.frigg.LameConverter
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -41,10 +41,10 @@ fun App() {
                         if (wavPath != null) {
                             val result = LameConverter.convertWavToMp3(wavPath, bitrate = 128)
                             conversionResult = when (result) {
-                                is com.br.lame.utils.ConversionResult.Success -> {
+                                is com.br.frigg.ConversionResult.Success -> {
                                     "Conversão concluída com sucesso!\nArquivo salvo em: ${result.mp3Path}"
                                 }
-                                is com.br.lame.utils.ConversionResult.Error -> {
+                                is com.br.frigg.ConversionResult.Error -> {
                                     "Erro ao converter o arquivo:\n${result.message}"
                                 }
                             }
