@@ -1,19 +1,268 @@
-*.iml
-.kotlin
-.gradle
-**/build/
-xcuserdata
-!src/**/build/
-local.properties
-.idea
-.DS_Store
-captures
-.externalNativeBuild
-.cxx
-*.xcodeproj/*
+# =============================================================================
+# Gradle
+# =============================================================================
+.gradle/
+build/
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+!**/src/**/build/
+.gradletasknamecache
+gradle-app.setting
+!gradle-app.setting
+gradle-wrapper.jar.bak
+
+# =============================================================================
+# Android
+# =============================================================================
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Android Studio / IntelliJ IDEA
+**/intermediates/
+**/tmp/
+**/generated/
+**/outputs/
+**/apk/
+**/dex/
+**/merged/
+**/res/merged/
+**/res/values-*/
+**/res/values-*/strings.xml
+**/res/values-*/strings.xml.bak
+**/res/values-*/arrays.xml
+**/res/values-*/arrays.xml.bak
+**/res/values-*/colors.xml
+**/res/values-*/colors.xml.bak
+**/res/values-*/dimens.xml
+**/res/values-*/dimens.xml.bak
+**/res/values-*/ids.xml
+**/res/values-*/ids.xml.bak
+**/res/values-*/styles.xml
+**/res/values-*/styles.xml.bak
+**/res/values-*/attrs.xml
+**/res/values-*/attrs.xml.bak
+**/res/values-*/public.xml
+**/res/values-*/public.xml.bak
+**/res/values-*/integers.xml
+**/res/values-*/integers.xml.bak
+**/res/values-*/plurals.xml
+**/res/values-*/plurals.xml.bak
+**/res/values-*/bools.xml
+**/res/values-*/bools.xml.bak
+**/res/values-*/strings.xml.bak
+**/res/values-*/arrays.xml.bak
+**/res/values-*/colors.xml.bak
+**/res/values-*/dimens.xml.bak
+**/res/values-*/ids.xml.bak
+**/res/values-*/styles.xml.bak
+**/res/values-*/attrs.xml.bak
+**/res/values-*/public.xml.bak
+**/res/values-*/integers.xml.bak
+**/res/values-*/plurals.xml.bak
+**/res/values-*/bools.xml.bak
+
+# Android NDK
+.externalNativeBuild/
+.cxx/
+*.o
+*.a
+*.so
+*.dylib
+
+# =============================================================================
+# iOS / Xcode
+# =============================================================================
+*.xcuserstate
+*.xcuserdatad
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.framework
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
-**/xcshareddata/WorkspaceSettings.xcsettings
+Pods/
+*.xcworkspace/xcshareddata/
+*.xcodeproj/xcshareddata/WorkspaceSettings.xcsettings
+
+# =============================================================================
+# CMake / Native Build
+# =============================================================================
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*.cmake
+!CMakeLists.txt
+*.ninja
+*.ninja_deps
+*.ninja_log
+build.ninja
+.ninja_log
+.ninja_deps
+
+# LAME Library (baixado via download-lame.sh)
+frigg/src/native/lame/
+
+# =============================================================================
+# Kotlin / Kotlin Multiplatform Native
+# =============================================================================
+.kotlin/
+*.klib
+*.kexe
+*.kexe.dSYM
+*.klib.dSYM
+kotlin-native/
+kotlin-native-cache/
+*.framework/
+!*.framework/Info.plist
+!*.framework/Headers/
+!*.framework/Modules/
+
+# =============================================================================
+# IDE - IntelliJ IDEA / Android Studio
+# =============================================================================
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/shelf
+.idea/.name
+.idea/compiler.xml
+.idea/copyright/profiles_settings.xml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/scopes/scope_settings.xml
+.idea/vcs.xml
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# Sistema Operacional
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# =============================================================================
+# Logs e Arquivos Temporários
+# =============================================================================
+*.log
+*.log.*
+CMakeOutput.log
+CMakeError.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+.cache/
+*.cache
+
+# =============================================================================
+# Maven Publishing (artefatos locais)
+# =============================================================================
+**/build/publishing/
+**/build/publications/
+**/build/reports/
+**/build/test-results/
+
+# =============================================================================
+# Configuração Local / Sensível
+# =============================================================================
+local.properties
+*.keystore
+*.jks
+*.properties
+!gradle.properties
+!gradle-wrapper.properties
+secrets.properties
+keystore.properties
+signing.properties
+
+# =============================================================================
+# Outros
+# =============================================================================
+captures/
 node_modules/
+.npm/
+.yarn/
+.pnp/
+.pnp.js
+coverage/
+.nyc_output/
+*.lcov
+.env
+.env.local
+.env.*.local
+
+# =============================================================================
+# Arquivos de Teste e Debug
+# =============================================================================
+**/test-results/
+**/test-results.xml
+**/TEST-*.xml
+**/test-output/
+**/reports/
+**/coverage/
+**/.test/
+**/.test-results/
+
+# =============================================================================
+# Arquivos de Backup e Temporários de Editores
+# =============================================================================
+*.orig
+*.rej
+*#
+.#*
+\#*#
+.*.sw[a-z]
+*.un~
+Session.vim
+.netrwhist

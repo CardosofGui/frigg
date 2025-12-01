@@ -1,0 +1,26 @@
+# lame.def
+
+# cabeçalho principal que expõe a API C
+headers = wav_to_mp3.h
+
+# filtra apenas esse header para o binding
+headerFilter = wav_to_mp3.h
+
+# inclui os headers C
+compilerOpts = -Isrc/native/wrapper -Isrc/native/lame/libmp3lame -Isrc/native/lame/include
+
+# onde o cinterop vai buscar os .a
+libraryPaths = src/native/lib
+
+# bibliotecas estáticas para cada destino
+staticLibraries.ios_arm64 = libfrigg_ios_arm64.a
+staticLibraries.ios_x64 = libfrigg_ios_simulator.a
+staticLibraries.ios_simulator_arm64 = libfrigg_ios_simulator.a
+
+# frameworks e stdlib necessários
+linkerOpts.ios_arm64 = -lc++ -framework Foundation
+linkerOpts.ios_x64 = -lc++ -framework Foundation
+linkerOpts.ios_simulator_arm64 = -lc++ -framework Foundation
+
+# pacote Kotlin gerado
+package = com.br.lame.utils.native
