@@ -127,6 +127,7 @@ build.ninja
 
 # LAME Library (baixado via download-lame.sh)
 frigg/src/native/lame/
+lame-utils/src/native/lame/
 
 # =============================================================================
 # Kotlin / Kotlin Multiplatform Native
