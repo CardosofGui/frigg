@@ -6,53 +6,14 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.io.IOException
 
-private val logger = KotlinLogging.logger("LameConverter")
+private val logger = KotlinLogging.logger("FriggConverter")
 
-actual object LameConverter {
-    private var isLibraryLoaded = false
-    private var appContext: Context? = null
-    
-    fun initialize(context: Context) {
-        logger.info { "Inicializando LameConverter" }
-        appContext = context.applicationContext
-        if (!isLibraryLoaded) {
-            try {
-                logger.debug { "Carregando bibliotecas nativas" }
-                loadLibraries(context)
-                isLibraryLoaded = true
-                logger.info { "Bibliotecas nativas carregadas com sucesso" }
-            } catch (e: Exception) {
-                logger.error(e) { "Erro ao carregar bibliotecas nativas" }
-                e.printStackTrace()
-            }
-        } else {
-            logger.debug { "Bibliotecas já estão carregadas" }
-        }
-    }
+actual class FriggConverter actual constructor() {
 
-    @JvmStatic
     external fun convertWavToMp3(wavPath: String, mp3Path: String, bitrate: Int): Boolean
 
-    actual fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
+    actual suspend fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
         logger.info { "Iniciando conversão WAV para MP3: $wavPath com bitrate $bitrate" }
-        
-        if (!isLibraryLoaded && appContext != null) {
-            try {
-                logger.debug { "Carregando bibliotecas nativas antes da conversão" }
-                loadLibraries(appContext!!)
-                isLibraryLoaded = true
-            } catch (e: Exception) {
-                val errorMsg = "Erro ao carregar bibliotecas nativas: ${e.message}"
-                logger.error(e) { errorMsg }
-                return ConversionResult.Error(errorMsg, e)
-            }
-        }
-        
-        if (!isLibraryLoaded) {
-            val errorMsg = "Bibliotecas nativas não foram inicializadas. Chame initialize() primeiro."
-            logger.error { errorMsg }
-            return ConversionResult.Error(errorMsg)
-        }
         
         val wavFile = File(wavPath)
         if (!wavFile.exists()) {
@@ -162,7 +123,7 @@ actual object LameConverter {
                 }
             } else {
                 val errorMsg = buildString {
-                    appendLine("A conversão falhou. Verifique os logs nativos (LameConverterNative) para detalhes.")
+                    appendLine("A conversão falhou. Verifique os logs nativos (FriggConverterNative) para detalhes.")
                     appendLine("Possíveis causas:")
                     appendLine("1. Arquivo WAV inválido ou corrompido")
                     appendLine("2. Formato de áudio não suportado (apenas PCM 16-bit é suportado)")
@@ -194,15 +155,6 @@ actual object LameConverter {
             ConversionResult.Error(errorMsg, e)
         }
     }
-    
-    private fun loadLibraries(context: Context) {
-        logger.debug { "Carregando biblioteca c++_shared" }
-        ReLinker.loadLibrary(context, "c++_shared")
-        logger.debug { "Carregando biblioteca wav_to_mp3" }
-        ReLinker.loadLibrary(context, "wav_to_mp3")
-        logger.debug { "Todas as bibliotecas foram carregadas" }
-    }
-    
     private fun validateWavFile(wavFile: File): String? {
         return try {
             val inputStream = wavFile.inputStream()
@@ -299,6 +251,13 @@ actual object LameConverter {
         } catch (e: Exception) {
             logger.error(e) { "Erro ao validar arquivo WAV" }
             "Erro ao ler header do arquivo WAV: ${e.message}"
+        }
+    }
+
+    companion object {
+        fun initialize(context: Context) {
+            ReLinker.loadLibrary(context, "c++_shared")
+            ReLinker.loadLibrary(context, "wav_to_mp3")
         }
     }
 }

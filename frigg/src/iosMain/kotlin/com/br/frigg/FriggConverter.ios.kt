@@ -5,8 +5,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSFileManager
 
 @OptIn(ExperimentalForeignApi::class)
-actual object LameConverter {
-    actual fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
+actual class FriggConverter actual constructor() {
+    actual suspend fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
         val fileManager = NSFileManager.defaultManager
         
         if (!fileManager.fileExistsAtPath(wavPath)) {
