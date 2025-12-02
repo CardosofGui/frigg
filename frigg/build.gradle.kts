@@ -62,7 +62,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
-                implementation(projects.friggLogging)
+                // implementation(projects.friggLogging) Debug only
             }
         }
 
