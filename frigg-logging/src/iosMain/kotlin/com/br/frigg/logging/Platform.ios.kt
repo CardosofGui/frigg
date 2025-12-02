@@ -1,3 +1,3 @@
-package com.br.lame.utils
+package com.br.frigg.logging
 
 actual fun platform() = "iOS"

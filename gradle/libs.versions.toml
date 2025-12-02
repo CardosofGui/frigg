@@ -13,6 +13,7 @@ composeMultiplatform = "1.9.1"
 junit = "4.13.2"
 kotlin = "2.2.20"
 kotlinStdlib = "2.2.20"
+relinker = "1.4.5"
 runner = "1.7.0"
 core = "1.7.0"
 kotlin-logging = "7.0.3"
@@ -33,6 +34,7 @@ kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", versio
 androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+relinker = { module = "com.getkeepsafe.relinker:relinker", version.ref = "relinker" }
 slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4j-android" }
 
 [plugins]

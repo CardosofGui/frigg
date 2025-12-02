@@ -4,7 +4,8 @@ import androidx.compose.ui.window.ComposeUIViewController
 import platform.UIKit.UIViewController
 
 fun MainViewController(): UIViewController {
-    val controller = ComposeUIViewController { App() }
+    val converter = FriggConverter()
+    val controller = ComposeUIViewController { App(converter = converter) }
     setViewController(controller)
     return controller
 }

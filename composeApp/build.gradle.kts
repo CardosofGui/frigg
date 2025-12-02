@@ -32,6 +32,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(projects.frigg)
+            implementation(projects.friggLogging)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

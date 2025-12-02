@@ -38,7 +38,7 @@ kotlin {
         compilations.getByName("main") {
             cinterops.create("lame") {
                 defFile(project.file("src/iosMain/cinterop/lame.def"))
-                packageName = "com.br.lame.utils.native"
+                packageName = "com.br.frigg.native"
                 includeDirs {
                     allHeaders("src/native/wrapper")
                     allHeaders("src/native/lame/libmp3lame")
@@ -62,6 +62,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
+                implementation(projects.friggLogging)
             }
         }
 
@@ -73,9 +74,7 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation("com.getkeepsafe.relinker:relinker:1.4.5")
-                implementation(libs.kotlin.logging)
-                implementation(libs.slf4j.android)
+                implementation(libs.relinker)
             }
         }
 
@@ -84,7 +83,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.br.lame.utils"
+    namespace = "com.br.frigg"
     compileSdk = 36
     ndkVersion = "26.1.10909125"
 
@@ -172,8 +171,12 @@ tasks.matching { it.name.contains("compileIosMainKotlinMetadata") }.configureEac
 // ---------------------------------------------------------
 //     PUBLICAÇÃO USANDO VANNIKTECH
 // ---------------------------------------------------------
-group = "io.github.cardosofgui"
-version = "1.0.0"
+val friggGroupId = project.findProperty("frigg.groupId") as String
+val friggArtifactId = project.findProperty("frigg.artifactId") as String
+val friggVersion = project.findProperty("frigg.version") as String
+
+group = friggGroupId
+version = friggVersion
 
 mavenPublishing {
 
@@ -186,14 +189,14 @@ mavenPublishing {
     )
 
     coordinates(
-        groupId = "io.github.cardosofgui",
-        artifactId = "frigg",
-        version = "1.0.0"
+        groupId = friggGroupId,
+        artifactId = friggArtifactId,
+        version = friggVersion
     )
 
     pom {
         name.set("frigg")
-        description.set("Kotlin Multiplatform library for WAV → MP3 conversion using LAME")
+        description.set("Frigg o seu amigo do audio/vídeo \uD83E\uDDDD\uD83C\uDFFB\u200D♀\uFE0F")
         url.set("https://github.com/CardosofGui/frigg")
 
         licenses {

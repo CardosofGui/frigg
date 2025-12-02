@@ -1,3 +1,3 @@
-package com.br.lame.utils
+package com.br.frigg.logging
 
 expect fun platform(): String

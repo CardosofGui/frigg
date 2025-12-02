@@ -3,14 +3,14 @@
 #include <android/log.h>
 #include "wav_to_mp3.h"
 
-#define LOG_TAG "LameConverterJNI"
+#define LOG_TAG "FriggConverterJNI"
 #define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOG_WARN(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 #define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOG_DEBUG(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_br_lame_utils_LameConverter_convertWavToMp3(
+Java_com_br_frigg_FriggConverter_convertWavToMp3(
     JNIEnv *env,
     jobject thiz,
     jstring wavPath,
