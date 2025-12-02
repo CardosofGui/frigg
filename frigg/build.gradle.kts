@@ -62,6 +62,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
+                implementation(projects.friggLogging)
             }
         }
 
@@ -73,9 +74,7 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation("com.getkeepsafe.relinker:relinker:1.4.5")
-                implementation(libs.kotlin.logging)
-                implementation(libs.slf4j.android)
+                implementation(libs.relinker)
             }
         }
 

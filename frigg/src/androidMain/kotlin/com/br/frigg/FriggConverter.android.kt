@@ -1,12 +1,12 @@
 package com.br.frigg
 
 import android.content.Context
+import com.br.frigg.logging.FriggLogging
 import com.getkeepsafe.relinker.ReLinker
-import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.io.IOException
 
-private val logger = KotlinLogging.logger("FriggConverter")
+private val logger = FriggLogging.logger("FriggConverter")
 
 actual class FriggConverter actual constructor() {
 
