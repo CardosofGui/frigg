@@ -171,8 +171,12 @@ tasks.matching { it.name.contains("compileIosMainKotlinMetadata") }.configureEac
 // ---------------------------------------------------------
 //     PUBLICAÇÃO USANDO VANNIKTECH
 // ---------------------------------------------------------
-group = "io.github.cardosofgui"
-version = "1.0.0"
+val friggGroupId = project.findProperty("frigg.groupId") as String
+val friggArtifactId = project.findProperty("frigg.artifactId") as String
+val friggVersion = project.findProperty("frigg.version") as String
+
+group = friggGroupId
+version = friggVersion
 
 mavenPublishing {
 
@@ -185,14 +189,14 @@ mavenPublishing {
     )
 
     coordinates(
-        groupId = "io.github.cardosofgui",
-        artifactId = "frigg",
-        version = "1.0.0"
+        groupId = friggGroupId,
+        artifactId = friggArtifactId,
+        version = friggVersion
     )
 
     pom {
         name.set("frigg")
-        description.set("Kotlin Multiplatform library for WAV → MP3 conversion using LAME")
+        description.set("Frigg o seu amigo do audio/vídeo \uD83E\uDDDD\uD83C\uDFFB\u200D♀\uFE0F")
         url.set("https://github.com/CardosofGui/frigg")
 
         licenses {
