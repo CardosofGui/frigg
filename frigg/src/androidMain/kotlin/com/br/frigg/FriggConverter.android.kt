@@ -157,101 +157,89 @@ actual class FriggConverter actual constructor() {
     }
     private fun validateWavFile(wavFile: File): String? {
         return try {
-            val inputStream = wavFile.inputStream()
-            val headerBuffer = ByteArray(12)
-            val bytesRead = inputStream.read(headerBuffer)
-            
-            if (bytesRead < 12) {
-                inputStream.close()
-                return "Arquivo WAV muito pequeno ou corrompido. Header incompleto (${bytesRead} bytes lidos, esperado pelo menos 12 bytes)"
-            }
-            
-            val chunkId = String(headerBuffer, 0, 4)
-            if (chunkId != "RIFF") {
-                inputStream.close()
-                val detectedFormat = when {
-                    chunkId.startsWith("ID3") -> "MP3 (detectado header ID3)"
-                    chunkId.startsWith("Ogg") -> "OGG"
-                    chunkId.startsWith("fLaC") -> "FLAC"
-                    chunkId.startsWith("ftyp") -> "MP4/M4A"
-                    else -> "desconhecido (header: '$chunkId')"
+            wavFile.inputStream().use { input ->
+
+                val header = ByteArray(12)
+                if (input.read(header) < 12) {
+                    return "Arquivo WAV muito pequeno ou corrompido. Cabeçalho incompleto."
                 }
-                return "Arquivo selecionado não é um WAV válido. Formato detectado: $detectedFormat. Por favor, selecione um arquivo WAV (PCM 16-bit)."
-            }
-            
-            val format = String(headerBuffer, 8, 4)
-            if (format != "WAVE") {
-                inputStream.close()
-                return "Arquivo não é um WAV válido. Format esperado: 'WAVE', encontrado: '$format'"
-            }
-            
-            var position = 12
-            var foundFmt = false
-            val chunkBuffer = ByteArray(8)
-            
-            while (position < 1024) {
-                val read = inputStream.read(chunkBuffer)
-                if (read < 8) {
-                    inputStream.close()
-                    return "Arquivo WAV corrompido. Não foi possível encontrar o chunk 'fmt '"
+
+                val riff = String(header, 0, 4)
+                val wave = String(header, 8, 4)
+
+                if (riff != "RIFF") {
+                    val detected = when {
+                        riff.startsWith("ID3") -> "MP3 (ID3)"
+                        riff.startsWith("Ogg") -> "OGG"
+                        riff.startsWith("fLaC") -> "FLAC"
+                        riff.startsWith("ftyp") -> "MP4/M4A"
+                        else -> "desconhecido ('$riff')"
+                    }
+                    return "Arquivo não é WAV válido. Formato detectado: $detected."
                 }
-                
-                val chunkId = String(chunkBuffer, 0, 4)
-                val chunkSize = (chunkBuffer[4].toInt() and 0xFF) or
-                               ((chunkBuffer[5].toInt() and 0xFF) shl 8) or
-                               ((chunkBuffer[6].toInt() and 0xFF) shl 16) or
-                               ((chunkBuffer[7].toInt() and 0xFF) shl 24)
-                
-                if (chunkId == "fmt ") {
-                    foundFmt = true
-                    val fmtBuffer = ByteArray(16)
-                    val fmtRead = inputStream.read(fmtBuffer)
-                    if (fmtRead < 16) {
-                        inputStream.close()
-                        return "Arquivo WAV corrompido. Chunk 'fmt ' incompleto"
-                    }
-                    
-                    val audioFormat = (fmtBuffer[0].toInt() and 0xFF) or ((fmtBuffer[1].toInt() and 0xFF) shl 8)
-                    if (audioFormat != 1) {
-                        inputStream.close()
-                        return "Formato de áudio não suportado. Apenas PCM (formato 1) é suportado, encontrado: formato $audioFormat"
-                    }
-                    
-                    val numChannels = (fmtBuffer[2].toInt() and 0xFF) or ((fmtBuffer[3].toInt() and 0xFF) shl 8)
-                    val sampleRate = (fmtBuffer[4].toInt() and 0xFF) or 
-                                    ((fmtBuffer[5].toInt() and 0xFF) shl 8) or
-                                    ((fmtBuffer[6].toInt() and 0xFF) shl 16) or
-                                    ((fmtBuffer[7].toInt() and 0xFF) shl 24)
-                    val bitsPerSample = (fmtBuffer[14].toInt() and 0xFF) or ((fmtBuffer[15].toInt() and 0xFF) shl 8)
-                    
-                    logger.info { "Detalhes do WAV: $numChannels canal(is), ${sampleRate}Hz, ${bitsPerSample}-bit, formato PCM" }
-                    
-                    if (bitsPerSample != 16) {
-                        inputStream.close()
-                        val errorMsg = "Bits por sample não suportado. Apenas 16-bit é suportado, encontrado: $bitsPerSample-bit"
-                        logger.error { errorMsg }
-                        return errorMsg
-                    }
-                    
-                    logger.info { "WAV válido e compatível: $numChannels canais, ${sampleRate}Hz, ${bitsPerSample}-bit PCM" }
-                    inputStream.close()
-                    return null
-                } else {
-                    inputStream.skip(chunkSize.toLong())
-                    position += 8 + chunkSize
+
+                if (wave != "WAVE") {
+                    return "Arquivo inválido. Era esperado 'WAVE', encontrado '$wave'."
                 }
+
+                val chunkHeader = ByteArray(8)
+                var bytesSearched = 12
+                var foundFmt = false
+
+                while (bytesSearched < 1024) {
+                    if (input.read(chunkHeader) < 8) {
+                        return "Arquivo WAV corrompido. Não foi possível ler próximo chunk."
+                    }
+
+                    val chunkId = String(chunkHeader, 0, 4)
+                    val chunkSize = byteArrayToIntLE(chunkHeader, 4)
+
+                    if (chunkId == "fmt ") {
+                        foundFmt = true
+
+                        val fmt = ByteArray(chunkSize)
+                        if (input.read(fmt) < chunkSize) {
+                            return "Arquivo WAV corrompido. Chunk 'fmt ' incompleto."
+                        }
+
+                        val audioFormat = byteArrayToShortLE(fmt, 0)
+                        val bitsPerSample = byteArrayToShortLE(fmt, 14)
+
+                        if (audioFormat != 1) {
+                            return "Formato de áudio não suportado. Apenas PCM (1) é aceito, encontrado $audioFormat."
+                        }
+
+                        if (bitsPerSample != 16) {
+                            return "Bits por sample não suportado. Apenas 16-bit é aceito, encontrado $bitsPerSample-bit."
+                        }
+
+                        return null
+                    }
+
+                    input.skip(chunkSize.toLong())
+                    bytesSearched += 8 + chunkSize
+                }
+
+                if (!foundFmt) {
+                    return "Arquivo WAV inválido. Chunk 'fmt ' não encontrado."
+                }
+
+                null
             }
-            
-            inputStream.close()
-            if (!foundFmt) {
-                return "Arquivo WAV inválido. Chunk 'fmt ' não encontrado"
-            }
-            
-            null
         } catch (e: Exception) {
-            logger.error(e) { "Erro ao validar arquivo WAV" }
-            "Erro ao ler header do arquivo WAV: ${e.message}"
+            "Erro ao ler arquivo WAV: ${e.message}"
         }
+    }
+    private fun byteArrayToIntLE(b: ByteArray, offset: Int): Int {
+        return (b[offset].toInt() and 0xFF) or
+                ((b[offset + 1].toInt() and 0xFF) shl 8) or
+                ((b[offset + 2].toInt() and 0xFF) shl 16) or
+                ((b[offset + 3].toInt() and 0xFF) shl 24)
+    }
+
+    private fun byteArrayToShortLE(b: ByteArray, offset: Int): Int {
+        return (b[offset].toInt() and 0xFF) or
+                ((b[offset + 1].toInt() and 0xFF) shl 8)
     }
 
     companion object {
