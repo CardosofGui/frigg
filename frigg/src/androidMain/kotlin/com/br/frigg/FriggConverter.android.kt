@@ -12,14 +12,14 @@ actual class FriggConverter actual constructor() {
 
     external fun convertWavToMp3(wavPath: String, mp3Path: String, bitrate: Int): Boolean
 
-    actual suspend fun convertWavToMp3(wavPath: String, bitrate: Int): ConversionResult {
+    actual suspend fun convertWavToMp3(wavPath: String, bitrate: Int): Result<String> {
         logger.info { "Iniciando conversão WAV para MP3: $wavPath com bitrate $bitrate" }
         
         val wavFile = File(wavPath)
         if (!wavFile.exists()) {
             val errorMsg = "Arquivo WAV não encontrado: $wavPath"
             logger.warn { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         val wavFileSize = wavFile.length()
@@ -29,19 +29,19 @@ actual class FriggConverter actual constructor() {
         if (wavFileSize == 0L) {
             val errorMsg = "Arquivo WAV está vazio: $wavPath"
             logger.error { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         if (wavFileSize < 44) {
             val errorMsg = "Arquivo WAV muito pequeno (${wavFileSize} bytes). Um arquivo WAV válido precisa ter pelo menos 44 bytes para o header: $wavPath"
             logger.error { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         if (!wavFile.canRead()) {
             val errorMsg = "Sem permissão para ler o arquivo WAV: $wavPath"
             logger.error { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         logger.debug { "Permissões do arquivo WAV: readable=true, absolutePath=${wavFile.absolutePath}" }
@@ -59,19 +59,19 @@ actual class FriggConverter actual constructor() {
                 if (!created && !mp3Dir.exists()) {
                     val errorMsg = "Não foi possível criar o diretório de saída: ${mp3Dir.absolutePath}"
                     logger.error { errorMsg }
-                    return ConversionResult.Error(errorMsg)
+                    return Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
                 val errorMsg = "Erro ao criar diretório de saída: ${mp3Dir.absolutePath}. Erro: ${e.message}"
                 logger.error(e) { errorMsg }
-                return ConversionResult.Error(errorMsg, e)
+                return Result.failure(Exception(errorMsg, e))
             }
         }
         
         if (mp3Dir != null && !mp3Dir.canWrite()) {
             val errorMsg = "Sem permissão para escrever no diretório: ${mp3Dir.absolutePath}"
             logger.warn { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         val availableSpace = mp3Dir?.freeSpace ?: 0L
@@ -80,14 +80,14 @@ actual class FriggConverter actual constructor() {
         if (availableSpace < wavFileSize) {
             val errorMsg = "Espaço insuficiente no disco. Disponível: $availableSpace bytes, necessário: aproximadamente ${wavFileSize} bytes"
             logger.warn { errorMsg }
-            return ConversionResult.Error(errorMsg)
+            return Result.failure(Exception(errorMsg))
         }
         
         logger.info { "Iniciando validação do arquivo WAV..." }
         val wavValidation = validateWavFile(wavFile)
         if (wavValidation != null) {
             logger.error { "Validação WAV falhou: $wavValidation" }
-            return ConversionResult.Error(wavValidation)
+            return Result.failure(Exception(wavValidation))
         }
         logger.info { "Validação WAV concluída com sucesso" }
         
@@ -109,17 +109,17 @@ actual class FriggConverter actual constructor() {
                     if (mp3FileSize > 0) {
                         val compressionRatio = (wavFileSize.toDouble() / mp3FileSize.toDouble() * 100).toInt()
                         logger.info { "Conversão concluída com sucesso: $mp3Path (${mp3FileSize} bytes, ${compressionRatio}% do tamanho original)" }
-                        ConversionResult.Success(mp3Path)
+                        return Result.success(mp3Path)
                     } else {
                         val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 está vazio: $mp3Path"
                         logger.error { errorMsg }
-                        ConversionResult.Error(errorMsg)
+                        return Result.failure(Exception(errorMsg))
                     }
                 } else {
                     val errorMsg = "Conversão retornou sucesso, mas o arquivo MP3 não foi criado: $mp3Path"
                     logger.error { errorMsg }
                     logger.error { "Diretório existe: ${mp3File.parentFile?.exists()}, pode escrever: ${mp3File.parentFile?.canWrite()}" }
-                    ConversionResult.Error(errorMsg)
+                    return Result.failure(Exception(errorMsg))
                 }
             } else {
                 val errorMsg = buildString {
@@ -135,24 +135,24 @@ actual class FriggConverter actual constructor() {
                     appendLine("Tempo de execução: ${duration}ms")
                 }
                 logger.error { errorMsg }
-                ConversionResult.Error(errorMsg)
+                return Result.failure(Exception(errorMsg))
             }
         } catch (e: UnsatisfiedLinkError) {
             val errorMsg = "Erro ao carregar biblioteca nativa: ${e.message}"
             logger.error(e) { errorMsg }
-            ConversionResult.Error(errorMsg, e)
+            return Result.failure(Exception(errorMsg, e))
         } catch (e: IOException) {
             val errorMsg = "Erro de I/O durante a conversão: ${e.message}"
             logger.error(e) { errorMsg }
-            ConversionResult.Error(errorMsg, e)
+            return Result.failure(Exception(errorMsg, e))
         } catch (e: SecurityException) {
             val errorMsg = "Erro de permissão durante a conversão: ${e.message}"
             logger.error(e) { errorMsg }
-            ConversionResult.Error(errorMsg, e)
+            return Result.failure(Exception(errorMsg, e))
         } catch (e: Exception) {
             val errorMsg = "Erro inesperado durante a conversão: ${e.javaClass.simpleName} - ${e.message}"
             logger.error(e) { errorMsg }
-            ConversionResult.Error(errorMsg, e)
+            return Result.failure(Exception(errorMsg, e))
         }
     }
     private fun validateWavFile(wavFile: File): String? {

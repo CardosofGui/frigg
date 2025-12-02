@@ -59,14 +59,14 @@ fun App(
                             val result = converter.convertWavToMp3(wavPath, bitrate = 128)
                             logger.debug { "Log" }
 
-                            conversionResult = when (result) {
-                                is ConversionResult.Success -> {
-                                    "Conversão concluída com sucesso!\nArquivo salvo em: ${result.mp3Path}"
+                            conversionResult = result.fold(
+                                onSuccess = { mp3Path ->
+                                    "Conversão concluída com sucesso!\nArquivo salvo em: $mp3Path"
+                                },
+                                onFailure = { exception ->
+                                    "Erro ao converter o arquivo:\n${exception.message ?: "Erro desconhecido"}"
                                 }
-                                is ConversionResult.Error -> {
-                                    "Erro ao converter o arquivo:\n${result.message}"
-                                }
-                            }
+                            )
                         } else {
                             conversionResult = "Nenhum arquivo selecionado."
                         }
