@@ -67,18 +67,20 @@ endif()
 
 if(ANDROID)
     find_library(log-lib log)
-    
+
     set(JNI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../androidMain/cpp/lame_jni.cpp")
-    
+
     if(NOT EXISTS "${JNI_SOURCE}")
         message(FATAL_ERROR "JNI source file not found: ${JNI_SOURCE}")
     endif()
-    
+
     add_library(wav_to_mp3 SHARED
         wrapper/wav_to_mp3.c
         ${JNI_SOURCE}
     )
-    
+
+    target_link_options(wav_to_mp3 PRIVATE "-Wl,-z,max-page-size=16384")
+
     target_link_libraries(wav_to_mp3
         lame
         ${log-lib}

@@ -85,7 +85,7 @@ kotlin {
 android {
     namespace = "com.br.frigg"
     compileSdk = 36
-    ndkVersion = "26.1.10909125"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         minSdk = 24
