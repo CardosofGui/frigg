@@ -12,4 +12,4 @@ Comandos que funcionam de fato neste repositório, com o resultado esperado. O q
 
 | O que verifica | Comando | Resultado esperado |
 | --- | --- | --- |
-| Compilação do código Android | `./gradlew :frigg:testDebugUnitTest` | `BUILD SUCCESSFUL` **sem executar testes**: o teste de exemplo está em `androidHostTest`, que este módulo não compila ([T-003](traps.md#t-003)) |
+| Compilação Kotlin do alvo Android (sem código nativo nem iOS) | `./gradlew :frigg:testDebugUnitTest` | `BUILD SUCCESSFUL` **sem executar testes**: o teste de exemplo está em `androidHostTest`, que este módulo não compila ([T-003](traps.md#t-003)) |
