@@ -6,6 +6,7 @@ Armadilhas, falhas e incidentes que já aconteceram neste repositório. Leia as 
 | --- | --- | --- | --- | --- |
 | [T-001](#t-001) | Bibliotecas nativas precisam de alinhamento de página de 16 KB | Build Android | média | mitigado |
 | [T-002](#t-002) | Consumidor principal usa cópia internalizada, não a versão publicada | Consumidores | média | ativo |
+| [T-003](#t-003) | Testes em `androidHostTest` e `androidDeviceTest` nunca rodam | Testes | média | ativo |
 
 ## Build Android
 
@@ -32,6 +33,19 @@ Armadilhas, falhas e incidentes que já aconteceram neste repositório. Leia as 
 - **Como evitar:** Antes de alterar a API ou o código nativo, confirmar quais consumidores ainda usam a versão publicada e levar a correção também à cópia do app quando for o caso.
 - **Como detectar:** Procurar a dependência deste artefato nos catálogos Gradle dos consumidores.
 - **Referências:** batalhafunk-android-v2 PR #436 (CRI-5).
+
+## Testes
+
+### T-003
+
+**Testes em `androidHostTest` e `androidDeviceTest` nunca rodam**
+
+- **Status:** ativo · **Severidade:** média · **Visto em:** 2026-11 · **Verificado em:** 2026-11-18
+- **Sintoma:** `./gradlew :frigg:testDebugUnitTest` termina com `BUILD SUCCESSFUL` sem compilar nem executar nenhum teste.
+- **Causa raiz:** O módulo usa `com.android.library` com `androidTarget`, que espera os source sets `androidUnitTest` e `androidInstrumentedTest`; os testes existentes estão em `frigg/src/androidHostTest` e `frigg/src/androidDeviceTest`. Para testes instrumentados também faltam `testInstrumentationRunner` e as dependências `androidx.test`.
+- **Como evitar:** Colocar testes novos em `androidUnitTest` (ou migrar o módulo para o plugin KMP de biblioteca Android) num PR de código; não tomar o `BUILD SUCCESSFUL` como prova de testes.
+- **Como detectar:** `./gradlew :frigg:testDebugUnitTest --console=plain` mostra `testDebugUnitTest NO-SOURCE`; quando os testes compilam, aparecem XMLs em `frigg/build/test-results/testDebugUnitTest/`.
+- **Referências:** `frigg/build.gradle.kts`; `frigg/src/androidHostTest/`; `frigg/src/androidDeviceTest/`.
 
 ## Como registrar
 
